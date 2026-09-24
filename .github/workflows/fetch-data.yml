@@ -1,0 +1,43 @@
+name: Fetch OKX data
+
+# Yedek veri yöntemi: OKX mumlarını 15 dakikada bir /data klasörüne JSON olarak yazar.
+# Tarayıcıdan doğrudan OKX erişimi çalışıyorsa (DATA_SOURCE: 'direct') bu workflow'u
+# Actions sekmesinden devre dışı bırakabilirsiniz.
+on:
+  schedule:
+    - cron: '*/15 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: fetch-data
+  cancel-in-progress: false
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: OKX verisini çek
+        run: node scripts/fetch-data.js
+      - name: Değişiklikleri commit et
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data
+          if git diff --cached --quiet; then
+            echo "Değişiklik yok"
+            exit 0
+          fi
+          git commit -m "data: OKX mum verisi güncellendi"
+          for i in 1 2 3; do
+            git pull --rebase origin main && git push origin HEAD:main && break
+            sleep 5
+          done

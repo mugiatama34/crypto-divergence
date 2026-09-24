@@ -1,0 +1,57 @@
+name: Deploy GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+  # Yedek veri güncellendiğinde siteyi yeniden yayınla
+  # (GITHUB_TOKEN ile yapılan push'lar yeni workflow tetiklemez, bu yüzden workflow_run kullanılır)
+  workflow_run:
+    workflows: ['Fetch OKX data']
+    types: [completed]
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  test:
+    if: github.event_name != 'workflow_run'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Testler (indicators, divergence, backtest)
+        run: npm test
+
+  deploy:
+    needs: test
+    # test işi workflow_run'da atlanır; atlanmış olsa da deploy çalışsın
+    if: always() && (needs.test.result == 'success' || needs.test.result == 'skipped') && (github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success')
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - name: Site dosyalarını hazırla
+        run: |
+          mkdir -p _site
+          cp -r index.html backtest.html css js _site/
+          mkdir -p data && cp -r data _site/
+          touch _site/.nojekyll
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+      - id: deployment
+        uses: actions/deploy-pages@v4
