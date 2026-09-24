@@ -78,6 +78,7 @@ Kapanmamış son mum (`confirm=0`) sinyal hesabına katılmaz.
 Tüm ayarlar **`js/config.js`** dosyasındadır:
 
 - `COINS`: coin listesi (USDT spot çiftleri). Listede olup OKX'te listelenmeyen bir çift varsa panel bunu uyarıyla bildirir (`checkListedPairs`).
+  Not: 24.09.2026 itibarıyla **TON-USDT OKX spot'ta listelenmiyor** (OKX hata 51001). Bu yüzden panelde "OKX'te listelenmiyor" olarak görünür, backtest'te seçilemez ve veri çekilmez.
 - `TIMEFRAMES`, `REFRESH_MS`: zaman dilimleri ve yenileme aralıkları.
 - `STRATEGY`: RSI periyodu, pivot uzunlukları, pivot mesafesi, RSI eşikleri, gizli uyumsuzluk / EMA filtresi, ATR çarpanı, TP R değerleri.
 - `BACKTEST`: varsayılan sermaye, risk, komisyon, slippage, TP1 davranışı, geliştirme oranı, kontrol koşusu sayısı, seed.

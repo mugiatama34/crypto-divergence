@@ -90,6 +90,17 @@
     });
   }
 
+  // Coin listesindeki çiftlerin OKX'te listelenip listelenmediğini kontrol et; eksikleri uyar
+  function checkListedCoins() {
+    return CD.okx.source
+      .checkListed(cfg.COINS)
+      .then(({ missing }) => {
+        if (missing.length) showAlert(`OKX'te listelenmeyen çift(ler): <b>${missing.map((c) => c + '-' + cfg.QUOTE).join(', ')}</b>. Bunlar atlanıyor; config.js'deki COINS listesinden çıkarabilirsiniz.`, 'warn', null, 'missing');
+        return missing;
+      })
+      .catch(() => []);
+  }
+
   /* ---------------- Grafik yardımcıları ---------------- */
 
   const LW = () => root.LightweightCharts;
@@ -180,6 +191,7 @@
     let chartState = null;
     const lastUpdate = {};
     const busy = {};
+    const unlisted = new Set(); // OKX'te listelenmeyen coinler: istek atılmaz
 
     // Bir satırın sinyalini ORTAK strateji fonksiyonuyla hesapla
     function compute(row) {
@@ -207,6 +219,11 @@
       const errors = [];
       for (const coin of cfg.COINS) {
         const row = rows.get(key(coin, tf));
+        if (unlisted.has(coin)) {
+          row.loading = false;
+          row.unlisted = true;
+          continue;
+        }
         row.loading = true;
         try {
           const r = await CD.okx.source.loadCandles(coin, tf);
@@ -269,7 +286,7 @@
           const k = key(r.coin, r.tf);
           const sel = k === selectedKey ? ' selected' : '';
           if (!r.signal) {
-            const msg = r.error ? `<span class="neg">Hata</span>` : r.loading && !r.candles ? '<span class="spinner"></span>' : 'Sinyal yok';
+            const msg = r.unlisted ? `OKX'te listelenmiyor` : r.error ? `<span class="neg" title="${esc(r.error)}">Hata</span>` : r.loading && !r.candles ? '<span class="spinner"></span>' : 'Sinyal yok';
             return `<tr class="nosig${sel}" data-k="${k}"><td><b>${r.coin}</b></td><td class="left">${r.tf}</td><td class="left"><span class="pill muted">${msg}</span></td>
               <td colspan="8"></td><td class="num">${fmtPrice(r.price)}</td></tr>`;
           }
@@ -390,18 +407,12 @@
     );
     $('#btnRefresh').addEventListener('click', () => cfg.TIMEFRAMES.forEach(loadTf));
 
-    // Listelenme kontrolü (engellemez)
-    CD.okx.source
-      .checkListed(cfg.COINS)
-      .then(({ missing }) => {
-        if (missing.length) showAlert(`OKX'te listelenmeyen çift(ler): <b>${missing.map((c) => c + '-' + cfg.QUOTE).join(', ')}</b>. config.js'deki COINS listesini güncelleyin.`, 'warn', null, 'missing');
-      })
-      .catch(() => {});
-
     render();
     renderMeta();
-    // İlk yükleme: sırayla (rate limit dostu), sonra zaman dilimine göre otomatik yenileme
+    // Önce listelenme kontrolü, ardından ilk yükleme: sırayla (rate limit dostu),
+    // sonra zaman dilimine göre otomatik yenileme
     (async () => {
+      await checkListedCoins().then((missing) => missing.forEach((c) => unlisted.add(c)));
       for (const tf of cfg.TIMEFRAMES) await loadTf(tf);
     })();
     cfg.TIMEFRAMES.forEach((tf) => setInterval(() => loadTf(tf), cfg.REFRESH_MS[tf] || 300e3));
@@ -423,7 +434,18 @@
 
     // Coin seçici
     $('#coinPicker').innerHTML = cfg.COINS.map((c) => `<label><input type="checkbox" value="${c}" ${c === 'BTC' || c === 'ETH' ? 'checked' : ''}/>${c}</label>`).join('');
-    $('#btnAll').onclick = () => document.querySelectorAll('#coinPicker input').forEach((i) => (i.checked = true));
+    // OKX'te listelenmeyen coinleri seçilemez yap
+    checkListedCoins().then((missing) =>
+      missing.forEach((c) => {
+        const i = $(`#coinPicker input[value="${c}"]`);
+        if (!i) return;
+        i.checked = false;
+        i.disabled = true;
+        i.parentElement.title = "OKX'te listelenmiyor";
+        i.parentElement.style.opacity = 0.4;
+      })
+    );
+    $('#btnAll').onclick = () => document.querySelectorAll('#coinPicker input:not(:disabled)').forEach((i) => (i.checked = true));
     $('#btnNone').onclick = () => document.querySelectorAll('#coinPicker input').forEach((i) => (i.checked = false));
 
     function fillDefaults() {

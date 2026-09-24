@@ -61,6 +61,8 @@
         if (e && e.name === 'AbortError') throw e;
         // fetch'in TypeError fırlatması genelde CORS veya ağ bağlantısı sorunudur
         lastErr = new ApiError(`OKX'e bağlanılamadı (ağ/CORS): ${e.message}`, { network: true });
+        // CORS hatası kalıcıdır; 'auto' modda yedeğe hızlı geçmek için ağ hatası denemeleri sınırlanabilir
+        if (opts.networkRetries != null && attempt >= opts.networkRetries) break;
         continue;
       }
       if (res.status === 429 || res.status >= 500) {
@@ -147,6 +149,9 @@
     };
   }
 
+  // 'auto' modda ağ hatasında yalnızca 1 kez yeniden dene, sonra yedeğe geç
+  const directOpts = (opts) => (cfg.DATA_SOURCE === 'auto' ? { networkRetries: 1, ...opts } : opts);
+
   const source = {
     mode: cfg.DATA_SOURCE === 'static' ? 'static' : 'direct',
     requested: cfg.DATA_SOURCE,
@@ -169,7 +174,7 @@
     async loadCandles(coin, bar, opts) {
       if (this.mode === 'direct') {
         try {
-          const candles = await getCandles(instId(coin), bar, cfg.CANDLE_LIMIT, opts);
+          const candles = await getCandles(instId(coin), bar, cfg.CANDLE_LIMIT, directOpts(opts));
           return { candles, updated: Date.now(), source: 'direct' };
         } catch (e) {
           if (!this._fallback(e)) throw e;
@@ -182,7 +187,7 @@
     async loadHistory(coin, bar, startMs, endMs, opts = {}) {
       if (this.mode === 'direct') {
         try {
-          const candles = await getHistoryCandles(instId(coin), bar, startMs, endMs, opts);
+          const candles = await getHistoryCandles(instId(coin), bar, startMs, endMs, directOpts(opts));
           return { candles, source: 'direct' };
         } catch (e) {
           if (!this._fallback(e)) throw e;
@@ -196,7 +201,7 @@
     async checkListed(coins) {
       if (this.mode === 'direct') {
         try {
-          return await checkListedPairs(coins);
+          return await checkListedPairs(coins, directOpts());
         } catch (e) {
           if (!this._fallback(e)) throw e;
         }
