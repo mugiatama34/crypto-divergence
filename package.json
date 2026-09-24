@@ -1,0 +1,13 @@
+{
+  "name": "crypto-divergence",
+  "version": "1.0.0",
+  "private": true,
+  "description": "RSI uyumsuzluk sinyalleri ve backtest — statik site (build adımı yok). package.json yalnızca testler ve veri betiği içindir.",
+  "scripts": {
+    "test": "node --test tests/indicators.test.js tests/divergence.test.js tests/backtest.test.js",
+    "fetch-data": "node scripts/fetch-data.js"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
