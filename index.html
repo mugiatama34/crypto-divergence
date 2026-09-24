@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Sinyal Paneli — RSI Uyumsuzluk</title>
+  <meta name="description" content="OKX verisiyle RSI–fiyat uyumsuzluğu tabanlı kripto BUY/SELL sinyalleri" />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand"><span class="dot"></span>RSI Divergence</div>
+    <nav class="nav">
+      <a href="index.html" class="active">Sinyaller</a>
+      <a href="backtest.html">Backtest</a>
+    </nav>
+    <div class="spacer"></div>
+    <span id="sourceBadge" class="source-badge">Veri: —</span>
+  </header>
+
+  <main>
+    <h1>Sinyal Paneli</h1>
+    <p class="sub">RSI ile fiyat arasındaki pozitif (BUY) ve negatif (SELL) uyumsuzluklar. Yalnızca kapanmış mumlar kullanılır.</p>
+
+    <div id="alerts"></div>
+
+    <section class="panel">
+      <div class="controls">
+        <div class="field">
+          <label for="fTf">Zaman dilimi</label>
+          <select id="fTf">
+            <option value="all">Tümü</option>
+            <option value="15m">15m</option>
+            <option value="4H">4H</option>
+            <option value="1D">1D</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="fDir">Yön</label>
+          <select id="fDir">
+            <option value="all">Tümü</option>
+            <option value="BUY">BUY</option>
+            <option value="SELL">SELL</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="fSort">Sıralama</label>
+          <select id="fSort">
+            <option value="time">En yeni sinyal</option>
+            <option value="score">Güç skoru</option>
+            <option value="coin">Coin</option>
+          </select>
+        </div>
+        <label class="check"><input type="checkbox" id="fOnlySig" /> Sadece sinyali olanlar</label>
+        <label class="check"><input type="checkbox" id="optHidden" /> Gizli uyumsuzluk</label>
+        <label class="check"><input type="checkbox" id="optTrend" /> EMA 200 filtresi</label>
+        <div class="spacer" style="flex:1"></div>
+        <button id="btnRefresh" class="secondary">Yenile</button>
+      </div>
+      <div class="meta-row" id="metaRow"></div>
+    </section>
+
+    <section class="table-wrap">
+      <table id="sigTable">
+        <thead>
+          <tr>
+            <th>Coin</th>
+            <th class="left">TF</th>
+            <th class="left">Yön</th>
+            <th>Giriş</th>
+            <th>SL</th>
+            <th>TP1</th>
+            <th>TP2</th>
+            <th>R:R</th>
+            <th class="left">Güç</th>
+            <th class="left">Durum</th>
+            <th>Sinyal zamanı</th>
+            <th>Güncel fiyat</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </section>
+
+    <section class="panel hidden" id="chartPanel" style="margin-top:16px">
+      <div class="chart-head">
+        <h2 id="chartTitle">Grafik</h2>
+        <div class="chart-legend">
+          <span style="--c:#5b8cff">Giriş</span>
+          <span style="--c:#ef4444">SL</span>
+          <span style="--c:#22c55e">TP1 / TP2</span>
+          <span style="--c:#f59e0b">Uyumsuzluk</span>
+        </div>
+      </div>
+      <div id="chartPrice" class="chart-price"></div>
+      <div id="chartRsi" class="chart-rsi"></div>
+      <p class="note" id="chartNote"></p>
+    </section>
+  </main>
+
+  <footer>
+    <strong>Bu site yatırım tavsiyesi değildir.</strong> Sinyaller otomatik üretilir, hatalı olabilir; geçmiş performans gelecekteki sonuçların garantisi değildir.
+    Veriler: OKX Public API.
+  </footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/lightweight-charts@4.2.3/dist/lightweight-charts.standalone.production.js"></script>
+  <script src="js/config.js"></script>
+  <script src="js/okx.js"></script>
+  <script src="js/indicators.js"></script>
+  <script src="js/divergence.js"></script>
+  <script src="js/signals.js"></script>
+  <script src="js/backtest.js"></script>
+  <script src="js/ui.js"></script>
+  <script>CD.ui.initSignalsPage();</script>
+</body>
+</html>

@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Backtest — RSI Uyumsuzluk</title>
+  <meta name="description" content="RSI uyumsuzluk stratejisinin OKX geçmiş verisiyle backtest'i" />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand"><span class="dot"></span>RSI Divergence</div>
+    <nav class="nav">
+      <a href="index.html">Sinyaller</a>
+      <a href="backtest.html" class="active">Backtest</a>
+    </nav>
+    <div class="spacer"></div>
+    <span id="sourceBadge" class="source-badge">Veri: —</span>
+  </header>
+
+  <main>
+    <h1>Backtest</h1>
+    <p class="sub">Sinyal paneliyle aynı strateji fonksiyonu. Aralık ilk %60 <b>geliştirme</b> ve son %40 <b>test</b> olarak ikiye bölünür; her blokta rastgele yönlü kontrol ile karşılaştırılır.</p>
+
+    <div id="alerts"></div>
+
+    <form class="panel" id="btForm" autocomplete="off">
+      <div class="fieldset-title" style="margin-top:0">Coinler</div>
+      <div class="coin-picker" id="coinPicker"></div>
+      <div class="controls" style="margin-top:8px">
+        <button type="button" class="secondary" id="btnAll">Tümünü seç</button>
+        <button type="button" class="secondary" id="btnNone">Temizle</button>
+      </div>
+
+      <div class="fieldset-title">Aralık ve sermaye</div>
+      <div class="grid-form">
+        <div class="field"><label for="tf">Zaman dilimi</label>
+          <select id="tf"><option>15m</option><option selected>4H</option><option>1D</option></select></div>
+        <div class="field"><label for="start">Başlangıç</label><input type="date" id="start" required /></div>
+        <div class="field"><label for="end">Bitiş</label><input type="date" id="end" required /></div>
+        <div class="field"><label for="capital">Başlangıç sermayesi ($)</label><input type="number" id="capital" min="1" step="any" /></div>
+        <div class="field"><label for="riskPct">İşlem başına risk %</label><input type="number" id="riskPct" min="0.01" max="100" step="any" /></div>
+        <div class="field"><label for="feePct">Komisyon % (taraf başı)</label><input type="number" id="feePct" min="0" step="any" /></div>
+        <div class="field"><label for="slippagePct">Slippage %</label><input type="number" id="slippagePct" min="0" step="any" /></div>
+      </div>
+
+      <div class="fieldset-title">Strateji</div>
+      <div class="grid-form">
+        <div class="field"><label for="rsiPeriod">RSI periyodu</label><input type="number" id="rsiPeriod" min="2" step="1" /></div>
+        <div class="field"><label for="pivotLeft">Pivot sol</label><input type="number" id="pivotLeft" min="1" step="1" /></div>
+        <div class="field"><label for="pivotRight">Pivot sağ</label><input type="number" id="pivotRight" min="1" step="1" /></div>
+        <div class="field"><label for="minBars">Pivot arası min</label><input type="number" id="minBars" min="1" step="1" /></div>
+        <div class="field"><label for="maxBars">Pivot arası max</label><input type="number" id="maxBars" min="2" step="1" /></div>
+        <div class="field"><label for="bullRsiMax">BUY: RSI &lt;</label><input type="number" id="bullRsiMax" min="0" max="100" step="any" /></div>
+        <div class="field"><label for="bearRsiMin">SELL: RSI &gt;</label><input type="number" id="bearRsiMin" min="0" max="100" step="any" /></div>
+        <div class="field"><label for="atrMult">SL tamponu (×ATR)</label><input type="number" id="atrMult" min="0" step="any" /></div>
+        <div class="field"><label for="tp1R">TP1 (R)</label><input type="number" id="tp1R" min="0.1" step="any" /></div>
+        <div class="field"><label for="tp2R">TP2 (R)</label><input type="number" id="tp2R" min="0.1" step="any" /></div>
+        <div class="field"><label for="controlRuns">Kontrol koşusu (N)</label><input type="number" id="controlRuns" min="1" max="500" step="1" /></div>
+        <div class="field"><label for="seed">Rastgele tohum</label><input type="number" id="seed" step="1" /></div>
+      </div>
+      <div class="controls" style="margin-top:12px">
+        <label class="check"><input type="checkbox" id="useHidden" /> Gizli uyumsuzluklar</label>
+        <label class="check"><input type="checkbox" id="useTrendFilter" /> EMA 200 trend filtresi</label>
+        <label class="check"><input type="checkbox" id="partialAtTp1" /> TP1'de yarım kapat</label>
+        <label class="check"><input type="checkbox" id="moveSlToBe" /> TP1 sonrası SL → giriş</label>
+        <div class="field"><label for="exitTarget">Tam çıkış hedefi (yarım kapatma kapalıyken)</label>
+          <select id="exitTarget"><option value="tp2">TP2</option><option value="tp1">TP1</option></select></div>
+      </div>
+
+      <div class="controls" style="margin-top:16px">
+        <button type="submit" id="btnRun">Backtest'i çalıştır</button>
+        <button type="button" class="secondary hidden" id="btnCancel">İptal</button>
+        <button type="button" class="secondary" id="btnReset">Varsayılanlar</button>
+      </div>
+      <div id="progressBox" class="hidden">
+        <div class="progress"><i id="progressBar"></i></div>
+        <div class="progress-label" id="progressLabel"></div>
+      </div>
+    </form>
+
+    <section id="results" class="hidden">
+      <div class="alert info">Ayarları yalnızca <b>geliştirme</b> bloğuna bakarak değiştirin. Test bloğu, görülmemiş veride sonucun tutup tutmadığını gösterir; ona göre ayar yapmak aşırı uyuma (overfitting) yol açar.</div>
+      <div class="results-grid">
+        <div class="panel" id="blockDev"></div>
+        <div class="panel" id="blockTest"></div>
+      </div>
+
+      <section class="panel" style="margin-top:16px">
+        <div class="chart-head">
+          <h2>Equity eğrisi</h2>
+          <div class="chart-legend">
+            <span style="--c:#5b8cff">Geliştirme</span>
+            <span style="--c:#f59e0b">Test</span>
+          </div>
+        </div>
+        <div id="chartEquity" class="chart-equity"></div>
+      </section>
+
+      <section class="panel">
+        <div class="chart-head">
+          <h2>İşlemler grafikte</h2>
+          <div class="field"><select id="chartCoin"></select></div>
+        </div>
+        <div id="chartTrades" class="chart-price"></div>
+      </section>
+
+      <section class="panel">
+        <div class="chart-head">
+          <h2>İşlem listesi (strateji)</h2>
+          <button type="button" class="secondary" id="btnCsv">CSV indir</button>
+        </div>
+        <div class="table-wrap" style="max-height:520px;overflow:auto">
+          <table id="tradeTable">
+            <thead>
+              <tr>
+                <th class="left">Blok</th><th class="left">Coin</th><th class="left">Yön</th>
+                <th>Giriş zamanı</th><th>Giriş</th><th>SL</th><th>Çıkış zamanı</th><th>Çıkış</th>
+                <th class="left">Neden</th><th>R</th><th>PnL ($)</th><th>PnL %</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </section>
+    </section>
+  </main>
+
+  <footer>
+    <strong>Bu site yatırım tavsiyesi değildir.</strong> Backtest sonuçları varsayımsaldır; komisyon, slippage ve likidite gerçek piyasada farklı olabilir.
+    SELL sinyalleri kısa (short) pozisyon olarak simüle edilir. Veriler: OKX Public API.
+  </footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/lightweight-charts@4.2.3/dist/lightweight-charts.standalone.production.js"></script>
+  <script src="js/config.js"></script>
+  <script src="js/okx.js"></script>
+  <script src="js/indicators.js"></script>
+  <script src="js/divergence.js"></script>
+  <script src="js/signals.js"></script>
+  <script src="js/backtest.js"></script>
+  <script src="js/ui.js"></script>
+  <script>CD.ui.initBacktestPage();</script>
+</body>
+</html>
