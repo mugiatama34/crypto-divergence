@@ -617,7 +617,8 @@
         <div class="table-wrap"><table class="metrics"><thead><tr><th>Metrik</th><th>Strateji</th><th>Kontrol (medyan, N=${b.ctrl.runs})</th></tr></thead>
         <tbody>${METRICS.map(([k, label, f]) => `<tr><td>${label}</td><td class="num">${f(m[k])}</td><td class="num">${f(c[k])}</td></tr>`).join('')}</tbody></table></div>
         <p class="verdict">Toplam getiride strateji, ${b.ctrl.runs} rastgele yönlü kontrol koşusundan <b>${Math.round((b.ctrl.percentile / 100) * b.ctrl.runs)} tanesini</b> geçti (%${fmtNum(b.ctrl.percentile, 0)}).
-        ${b.ctrl.percentile >= 95 ? 'Kontrolden anlamlı biçimde iyi görünüyor.' : b.ctrl.percentile >= 75 ? 'Kontrolden iyi, ancak kesin değil.' : 'Rastgele yönden belirgin biçimde ayrışmıyor.'}</p>`;
+        ${b.ctrl.percentile >= 95 ? 'Kontrolden anlamlı biçimde iyi görünüyor.' : b.ctrl.percentile >= 75 ? 'Kontrolden iyi, ancak kesin değil.' : 'Rastgele yönden belirgin biçimde ayrışmıyor.'}
+        ${m.trades < 30 ? `<br><b>Dikkat:</b> yalnızca ${m.trades} işlem var; bu örneklem istatistiksel sonuç için küçük (≥30 önerilir). Daha fazla coin ya da daha uzun aralık deneyin.` : ''}</p>`;
     }
 
     function renderResults() {

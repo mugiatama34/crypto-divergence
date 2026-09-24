@@ -161,14 +161,15 @@
       this.listeners.push(fn);
     },
     // 'auto' modunda ağ/CORS hatasında yedeğe geç
+    // (Eşzamanlı istekler: başka bir istek zaten yedeğe geçirdiyse bu hata da yedekle karşılanır.)
     _fallback(err) {
-      if (this.requested === 'auto' && this.mode === 'direct' && err && err.network) {
+      if (this.requested !== 'auto' || !err || !err.network) return false;
+      if (this.mode === 'direct') {
         this.mode = 'static';
         this.fallbackReason = err.message;
         this.listeners.forEach((f) => f(this.mode, err));
-        return true;
       }
-      return false;
+      return true;
     },
     // Tüm mumlar (son mum kapanmamış olabilir; confirm alanına bakın)
     async loadCandles(coin, bar, opts) {
